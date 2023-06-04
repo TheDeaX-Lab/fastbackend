@@ -1,6 +1,24 @@
 import pyodbc
 import pandas
 from threading import Lock
+import jwt
+
+with open("securecode.txt", "r", encoding="utf8") as f:
+    secure_code = f.read()
+
+def encode_jwt(value):
+    return jwt.encode(
+        value,
+        secure_code,
+        algorithm="HS256"
+    )
+
+def decode_jwt(jw_token):
+    return jwt.decode(
+        jw_token,
+        secure_code,
+        algorithms=["HS256"]
+    )
 
 db_lock = Lock()
 # sqlsa
@@ -13,8 +31,8 @@ conn = pyodbc.connect(
         "DRIVER={SQL Server};"
         r"SERVER=DESKTOP-M6R1M10\SQLSA;"
         "DATABASE=Кино;"
-        r"UID=sa;"
-        r"PWD=12345;"
+        "UID=sa;"
+        "PWD=12345;"
     )
 )
 
@@ -35,4 +53,5 @@ def execute_sql_mutual(sql, *params):
             conn.commit()
 
 # if __name__ == "__main__":
-#     print(execute_sql_data("select * from Билет"))
+#     print(execute_sql_data("select count(*) from Билет").iloc[0][0])
+#     print(encode_jwt(dict(tp="worker", tp_id=1)))

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import bilets
+from routers import bilets, users
 import sys
 import os
 
@@ -7,8 +7,8 @@ sys.path.append(os.getcwd())
 
 app = FastAPI()
 
-
 app.include_router(bilets.router)
+app.include_router(users.router)
 
 @app.get("/")
 async def root():
