@@ -1,0 +1,4 @@
+fastapi
+odbc
+pandas
+uvicorn
