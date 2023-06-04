@@ -7,7 +7,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/free_places_for_seance/{seance_id}")
+@router.post("/free_places_for_seance/{seance_id}")
 async def free_places_for_seance(seance_id):
     if execute_sql_data("select count(*) from Сеанс where ID_Сеанса = ?", seance_id).iloc[0][0] == 0:
         return dict(
@@ -34,10 +34,10 @@ async def add_bilet(request: Request):
             status="ERROR",
             message="Некорректный token"
         )
-    if execute_sql_data("select count(*) from Сеанс where ID_Сеанса = ?", data["seance"]).iloc[0][0] == 0:
+    if execute_sql_data("select count(*) from Сеанс where ID_Сеанса = ? and getdate() < ДатаИВремя", data["seance"]).iloc[0][0] == 0:
         return dict(
             status="ERROR",
-            message="Такого сеанса нет"
+            message="Такого сеанса нет или не доступен для регистрации на текущее время"
         )
     if execute_sql_data("select count(*) from Место where ID_Места = ?", data["place"]).iloc[0][0] == 0:
         return dict(
@@ -51,21 +51,31 @@ async def add_bilet(request: Request):
                 message="Билет не может быть зарегистрирован на указанное место в сеансе"
             )
         else:
-            execute_sql_mutual("insert into Билет(Статус, Место, Стоимость, Сеанс, Покупатель) values (?, ?, ?, ?, ?)",
-                "Забронирован" if not data["is_buy"] else "Куплен",
-                data["place"],
-                execute_sql_data("""select Цена * (
-                    select [множитель стоимости]
-                    from Место
-                    where ID_Места = ?
-                ) from Сеанс where ID_Сеанса = ?""", data["place"], data["seance"]).iloc[0][0],
-                data["seance"],
-                user["tp_id"]
-            )
-            return dict(
-                status="OK",
-                message="Билет зарегистрирован"
-            )
+            if (
+                execute_sql_data("select Возраст from Покупатель where id_покупателя = ?", user["tp_id"]).iloc[0][0]
+                >=
+                execute_sql_data("select case Категория when '16+' then 16 when '18+' then 18 else 0 end from Сеанс join Фильм on Сеанс.Фильм = Фильм.ID_Фильма where ID_Сеанса = ?", data["seance"]).iloc[0][0]
+            ):
+                execute_sql_mutual("insert into Билет(Статус, Место, Стоимость, Сеанс, Покупатель) values (?, ?, ?, ?, ?)",
+                    "Забронирован" if not data["is_buy"] else "Куплен",
+                    data["place"],
+                    execute_sql_data("""select Цена * (
+                        select [множитель стоимости]
+                        from Место
+                        where ID_Места = ?
+                    ) from Сеанс where ID_Сеанса = ?""", data["place"], data["seance"]).iloc[0][0],
+                    data["seance"],
+                    user["tp_id"]
+                )
+                return dict(
+                    status="OK",
+                    message="Билет зарегистрирован"
+                )
+            else:
+                return dict(
+                    status="ERROR",
+                    message="Билет не может быть зарегистрирован по причине возрастных ограничений"
+                )
     else:
         return dict(
             status="ERROR",

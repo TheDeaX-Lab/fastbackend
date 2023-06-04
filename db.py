@@ -54,4 +54,4 @@ def execute_sql_mutual(sql, *params):
 
 # if __name__ == "__main__":
 #     print(execute_sql_data("select count(*) from Билет").iloc[0][0])
-#     print(encode_jwt(dict(tp="worker", tp_id=1)))
+    # print(encode_jwt(dict(tp="user", tp_id=3)))
